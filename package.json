@@ -1,0 +1,8 @@
+{
+  "name": "volunteer-roster",
+  "private": true,
+  "description": "Light the World Giving Machine volunteer roster",
+  "dependencies": {
+    "@netlify/blobs": "^11.1.4"
+  }
+}
