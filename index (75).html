@@ -1,0 +1,1434 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Volunteer Roster</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  /* Palette from the Light the World Giving Machine deck */
+  --red:#DC1E35; --red-dark:#B8172B; --red-soft:#E2505F;
+  --pink-1:#FBF3F4; --pink-2:#FCEBED; --pink-3:#F6C3CA; --pink-4:#FBD5DA;
+  --bg:var(--pink-1); --panel:#fff; --ink:#262626; --muted:#666666; --line:#E6E6E6;
+  --accent:var(--red); --accent-ink:#fff;
+  --full:#1a7f37; --full-bg:#e3f4e8;
+  --under:#9a6700; --under-bg:#fff4d1;
+  --empty:var(--red); --empty-bg:var(--pink-2);
+  --over:#6b3fa0; --over-bg:#efe7f8;
+  --radius:10px; --shadow:0 1px 2px rgba(38,38,38,.05),0 2px 10px rgba(220,30,53,.05);
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 Calibri,Carlito,"Segoe UI",Arial,sans-serif}
+h1,h2,h3,nav.tabs button,.stat b{font-family:Arial,Helvetica,sans-serif}
+
+.wrap{max-width:1180px;margin:0 auto;padding:20px 16px 60px}
+/* Red brand band, as on the deck's title slide */
+header.brand{background:var(--red);color:#fff}
+.brand-in{max-width:1180px;margin:0 auto;padding:16px 16px;display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center}
+.brand-logo{height:64px;width:auto;display:block}
+.eyebrow{font:600 .78rem/1 Arial,Helvetica,sans-serif;letter-spacing:.35em;text-transform:uppercase;color:#fff;opacity:.95;margin-bottom:6px}
+header.brand h1{color:#fff;font-size:1.45rem}
+header.brand .sub{color:var(--pink-4)}
+header.brand .row{gap:6px}
+header.brand button{background:transparent;color:#fff;border-color:rgba(255,255,255,.6)}
+header.brand button:hover{background:rgba(255,255,255,.14);border-color:#fff}
+header.brand .status{color:var(--pink-4);font-size:.85rem}
+header.brand .status.err{color:#fff;font-weight:700;background:rgba(0,0,0,.18);padding:2px 8px;border-radius:6px}
+h1{font-size:1.5rem;margin:0}
+h2{font-size:1.15rem;margin:0 0 10px}
+h3{font-size:1rem;margin:16px 0 8px}
+.sub{color:var(--muted);margin:2px 0 0}
+nav.tabs{display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid var(--line);margin-bottom:18px}
+nav.tabs button{background:none;border:0;border-bottom:2px solid transparent;padding:10px 14px;color:var(--muted);font:inherit;cursor:pointer}
+nav.tabs button.active{color:var(--red);border-color:var(--red);font-weight:700}
+nav.tabs button:hover{color:var(--red)}
+section.tab{display:none} section.tab.active{display:block}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);margin-bottom:16px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow)}
+.stat b{display:block;font-size:1.6rem;line-height:1.1;color:var(--red)}
+.stat span{color:var(--muted);font-size:.85rem}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.spacer{flex:1}
+button,.btn{font:inherit;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:7px 12px;border-radius:8px;cursor:pointer}
+button:hover{border-color:var(--accent)}
+button.primary:hover{background:var(--red-dark);border-color:var(--red-dark)}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--pink-3);border-color:var(--accent)}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button.danger{color:var(--empty)}
+button.sm{padding:3px 9px;font-size:.85rem}
+button:disabled{opacity:.45;cursor:not-allowed}
+input,select,textarea{font:inherit;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:8px;padding:7px 10px;width:100%}
+input[type=checkbox]{width:auto}
+input.num{width:64px;text-align:center;padding:4px}
+label.f{display:block;font-size:.85rem;color:var(--muted);margin-bottom:4px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.checks{display:flex;flex-wrap:wrap;gap:6px}
+.checks label{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:4px 12px;cursor:pointer;background:#fff;font-size:.9rem}
+.checks label:has(input:checked){border-color:var(--accent);background:var(--pink-2);color:var(--red-dark);font-weight:600}
+.checks input{accent-color:var(--red)}
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font-size:.8rem;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);font-weight:600}
+td.c,th.c{text-align:center}
+.pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:.78rem;font-weight:600}
+.s-full{color:var(--full);background:var(--full-bg)}
+.s-under{color:var(--under);background:var(--under-bg)}
+.s-empty{color:var(--empty);background:var(--empty-bg)}
+.s-over{color:var(--over);background:var(--over-bg)}
+.matrix{table-layout:fixed}
+.matrix th:first-child{width:150px}
+.matrix td{padding:4px}
+.cell{width:100%;min-height:92px;text-align:left;display:flex;flex-direction:column;gap:3px;border-radius:8px;border:1px solid transparent;padding:8px}
+.cell .cnt{font-weight:700}
+.cell .names{font-size:.8rem;color:var(--ink);opacity:.85}
+.cell.s-full{border-color:color-mix(in srgb,var(--full) 35%,transparent)}
+.cell.s-under{border-color:color-mix(in srgb,var(--under) 35%,transparent)}
+.cell.s-empty{border-color:color-mix(in srgb,var(--empty) 35%,transparent)}
+.cell.s-over{border-color:color-mix(in srgb,var(--over) 35%,transparent)}
+.legend{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.warn{border-left:4px solid var(--empty);background:var(--empty-bg);padding:10px 14px;border-radius:8px;margin-bottom:16px}
+.warn ul{margin:6px 0 0;padding-left:18px}
+.ok{border-left:4px solid var(--full);background:var(--full-bg);padding:10px 14px;border-radius:8px;margin-bottom:16px}
+.muted{color:var(--muted)}
+.tag{display:inline-block;font-size:.75rem;border:1px solid var(--line);border-radius:6px;padding:0 6px;margin:1px 2px 1px 0;white-space:nowrap}
+dialog{border:1px solid var(--line);border-radius:12px;padding:0;background:var(--panel);color:var(--ink);width:min(560px,calc(100vw - 32px));max-height:85vh}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+.dlg-h{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
+.dlg-b{padding:14px 16px;overflow:auto;max-height:calc(85vh - 60px)}
+.list{list-style:none;margin:0;padding:0}
+.list li{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line)}
+.list li .who{flex:1;min-width:0}
+.list li small{color:var(--muted);display:block}
+#toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:10px 16px;border-radius:8px;opacity:0;transition:.2s;pointer-events:none;max-width:90vw;z-index:50}
+#toast.show{opacity:1;transform:translateX(-50%)}
+.thanks{text-align:center;padding:30px 10px}
+body.signup-only nav.tabs, body.signup-only .admin-only{display:none}
+body:not(.signup-only) .public-only{display:none}
+/* Login page: red panel + Giving Machine photo, laid out like the deck's title slide */
+.login-page{position:fixed;inset:0;z-index:40;display:grid;place-items:center;background:var(--red);color:#fff;overflow:auto}
+.login-page[hidden]{display:none}
+body.login-mode > header.brand, body.login-mode > .wrap{display:none}
+.login-panel{display:flex;flex-direction:column;width:min(400px,100%);padding:48px 24px}
+.login-logo{width:min(240px,60%);height:auto;margin-bottom:18px}
+.login-panel .eyebrow{font-size:.95rem;letter-spacing:.42em;margin-bottom:26px}
+.login-panel h1{font-size:1.9rem;color:#fff;margin:0 0 6px}
+.login-sub{color:var(--pink-4);margin:0 0 26px}
+.login-form{max-width:360px}
+.login-form label.f{color:#fff;font-weight:600}
+.login-form input{background:#fff;border:0;padding:11px 12px;margin-bottom:12px}
+.login-form input:focus{outline:3px solid var(--pink-3)}
+.login-form button{width:100%;background:#fff;color:var(--red);border:0;font-weight:700;padding:11px;font-size:1rem}
+.login-form button:hover{background:var(--pink-2)}
+.login-err{color:#fff;font-weight:700;min-height:1.3em;margin:0 0 10px;font-size:.95rem}
+.login-form{max-width:none}
+.login-msg{min-height:1.2em;margin:8px 0;font-size:.9rem}
+.login-msg.err{color:var(--red);font-weight:600}
+.login-msg.ok{color:var(--full);font-weight:600}
+
+/* Registration form: Giving Machine photo beside the form, like the deck's title slide */
+.signup-photo{display:none}
+body.signup-only .signup-photo{display:block;position:fixed;top:0;right:0;bottom:0;width:44vw}
+body.signup-only .signup-photo img{width:100%;height:100%;object-fit:cover;object-position:68% center;display:block}
+body.signup-only > header.brand, body.signup-only > .wrap{margin-right:44vw}
+body.signup-only #tab-signup .card{max-width:640px}
+@media (max-width:900px){
+  body.signup-only .signup-photo{position:static;width:auto;height:240px}
+  body.signup-only > header.brand, body.signup-only > .wrap{margin-right:0}
+}
+@media print{ .signup-photo{display:none!important} body.signup-only > header.brand, body.signup-only > .wrap{margin-right:0} }
+@media print{
+  nav.tabs,.noprint,button,.brand-logo{display:none!important}
+  header.brand{background:#fff;color:#000} header.brand h1,header.brand .eyebrow{color:#000}
+  body{background:#fff;color:#000}
+  .card,.stat{box-shadow:none;border-color:#ccc}
+}
+</style>
+</head>
+<body>
+<div class="signup-photo"><img src="/assets/giving-machine.jpg" alt="A child in a winter hat choosing a gift at a Light the World Giving Machine"></div>
+<header class="brand">
+  <div class="brand-in">
+    <img class="brand-logo" src="/assets/light-the-world-logo-white.png" alt="Light the World">
+    <div>
+      <div class="eyebrow">Giving Machine</div>
+      <h1 id="eventName">Volunteer Schedule</h1>
+      <p class="sub" id="eventSub"></p>
+    </div>
+    <span class="spacer"></span>
+      <div class="row noprint admin-only">
+        <span class="status" id="whoami"></span>
+        <span class="status" id="rosterStatus"></span>
+        <span class="status" id="syncStatus"></span>
+        <button onclick="syncSignups(true)">Sync now</button>
+        <button onclick="window.print()">Print</button>
+        <button onclick="copySignupLink('signup')">Copy general link</button>
+        <button onclick="copySignupLink('ward-signup')">Copy ward link</button>
+        <button onclick="logout()">Log out</button>
+      </div>
+  </div>
+</header>
+
+<div id="loginPage" class="login-page" hidden>
+  <div class="login-panel">
+    <img class="login-logo" src="/assets/light-the-world-logo-white.png" alt="Light the World">
+    <div class="eyebrow">Giving Machine</div>
+    <h1>Volunteer Roster</h1>
+    <p class="login-sub">Admin login</p>
+    <form class="login-form" id="loginForm" autocomplete="on">
+      <label class="f" for="loginEmail">Email</label>
+      <input id="loginEmail" type="email" autocomplete="username" required>
+      <label class="f" for="loginPw">Password</label>
+      <input id="loginPw" type="password" autocomplete="current-password" required>
+      <p class="login-err" id="loginErr" role="alert"></p>
+      <button type="submit">Log in</button>
+    </form>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <nav class="tabs" id="tabs">
+    <button data-tab="dashboard" class="active">Dashboard</button>
+    <button data-tab="schedule">Schedule</button>
+    <button data-tab="volunteers">Volunteers</button>
+    <button data-tab="tracking">Assignments</button>
+    <button data-tab="signup">Sign-up</button>
+    <button data-tab="data">Data</button>
+    <button data-tab="admins">Admins</button>
+  </nav>
+
+  <!-- DASHBOARD -->
+  <section class="tab active" id="tab-dashboard">
+    <div class="stats" id="stats"></div>
+    <div id="conflicts"></div>
+    <div class="card">
+      <div class="row" style="margin-bottom:10px">
+        <h2 style="margin:0">Coverage report</h2>
+        <span class="spacer"></span>
+        <label class="row noprint" style="gap:6px"><input type="checkbox" id="underOnly"> Understaffed only</label>
+        <button class="primary noprint" id="autoBtn">Auto-fill open shifts</button>
+      </div>
+      <div class="tablewrap"><table id="coverage"></table></div>
+    </div>
+  </section>
+
+  <!-- SCHEDULE MATRIX -->
+  <section class="tab" id="tab-schedule">
+    <div class="card">
+      <h2>Schedule matrix</h2>
+      <p class="muted noprint" style="margin-top:-4px">Click a shift to assign or remove volunteers.</p>
+      <div class="tablewrap"><table class="matrix" id="matrix"></table></div>
+      <div class="legend">
+        <span class="pill s-full">Fully staffed</span>
+        <span class="pill s-under">Understaffed</span>
+        <span class="pill s-empty">No one assigned</span>
+        <span class="pill s-over">Overbooked</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- VOLUNTEERS -->
+  <section class="tab" id="tab-volunteers">
+    <div class="card noprint">
+      <h2 id="vFormTitle">Add volunteer</h2>
+      <form id="vForm" autocomplete="off">
+        <div class="grid2">
+          <div><label class="f">Name *</label><input name="name" required></div>
+          <div><label class="f">Phone</label><input name="phone" type="tel"></div>
+          <div><label class="f">Email</label><input name="email" type="email"></div>
+          <div><label class="f">Ward</label><select name="ward" id="vWard"></select></div>
+          <div><label class="f">Date of birth</label><input name="dob" type="date" min="1900-01-01"></div>
+        </div>
+        <h3>Available dates</h3><div class="checks" id="vDates"></div>
+        <h3>Available time slots</h3><div class="checks" id="vSlots"></div>
+        <h3>🎵 Musical gift <span class="muted" style="font-weight:normal;font-size:.85rem">(required to be available for Musical Performance)</span></h3>
+        <input name="music" placeholder="e.g. Piano, vocals, violin">
+        <h3>Notes / special skills</h3><textarea name="notes" rows="2"></textarea>
+        <div class="row" style="margin-top:12px">
+          <button class="primary" type="submit" id="vSubmit">Add volunteer</button>
+          <button type="button" id="vCancel" hidden>Cancel</button>
+        </div>
+      </form>
+    </div>
+    <div class="card">
+      <div class="row" style="margin-bottom:10px">
+        <h2 style="margin:0">Volunteers <span class="muted" id="vCount"></span></h2>
+        <span class="spacer"></span>
+        <select id="vWardFilter" style="max-width:200px" class="noprint" aria-label="Filter by ward"></select>
+        <input id="vSearch" placeholder="Search name, email, skill…" style="max-width:260px" class="noprint">
+      </div>
+      <div class="tablewrap"><table id="vTable"></table></div>
+    </div>
+  </section>
+
+  <!-- ASSIGNMENT TRACKING -->
+  <section class="tab" id="tab-tracking">
+    <div class="card">
+      <h2>Assignment tracking</h2>
+      <div class="tablewrap"><table id="tracking"></table></div>
+    </div>
+  </section>
+
+  <!-- SIGN-UP (Netlify Forms) -->
+  <section class="tab" id="tab-signup">
+    <div class="card admin-only noprint" style="max-width:720px;margin:0 auto 16px">
+      <h2>Sign-up links</h2>
+      <p class="muted" style="margin-top:-4px">Share the general link with everyone, and the ward link with ward members (it adds a required Ward field).</p>
+      <div class="row">
+        <button onclick="copySignupLink('signup')">Copy general link</button>
+        <button onclick="copySignupLink('ward-signup')">Copy ward member link</button>
+        <span class="spacer"></span>
+        <span class="muted" style="font-size:.85rem">Preview:</span>
+        <button class="sm" id="prevGeneral" onclick="setSignupMode('general')">General</button>
+        <button class="sm" id="prevWard" onclick="setSignupMode('ward')">Ward members</button>
+      </div>
+    </div>
+    <div class="card" style="max-width:720px;margin:0 auto">
+      <div id="signupWrap">
+        <h2 id="suTitle">Volunteer sign-up</h2>
+        <p class="muted" style="margin-top:-4px">Tell us when you can help and we'll assign you a shift.</p>
+        <form name="volunteer-signup" method="POST" data-netlify="true" netlify-honeypot="bot-field" id="signupForm">
+          <input type="hidden" name="form-name" value="volunteer-signup">
+          <input type="hidden" name="form_version" value="2">
+          <p hidden><label>Don't fill this out: <input name="bot-field"></label></p>
+          <input type="hidden" name="available_dates">
+          <input type="hidden" name="available_times">
+          <input type="hidden" name="registration_type" value="General">
+          <input type="hidden" name="name">
+          <div class="grid2">
+            <div><label class="f" for="suFirst">First name *</label><input id="suFirst" name="first_name" autocomplete="given-name" required></div>
+            <div><label class="f" for="suLast">Last name *</label><input id="suLast" name="last_name" autocomplete="family-name" required></div>
+          </div>
+          <div id="suWardWrap" hidden style="margin-top:12px">
+            <label class="f" for="suWard">Ward *</label>
+            <select name="ward" id="suWard"></select>
+          </div>
+          <div class="grid2" style="margin-top:12px">
+            <div><label class="f">Phone *</label><input name="phone" type="tel" required></div>
+            <div><label class="f">Email *</label><input name="email" type="email" required></div>
+            <div><label class="f" for="suDob">Date of birth *</label><input id="suDob" name="date_of_birth" type="date" required min="1900-01-01" autocomplete="bday"></div>
+            <div class="muted" style="font-size:.85rem;align-self:end;padding-bottom:9px" id="suDobNote"></div>
+          </div>
+          <h3>Which dates can you help? *</h3><div class="checks" id="suDates"></div>
+          <h3>Which times work? *</h3><div class="checks" id="suSlots"></div>
+          <p class="muted" style="font-size:.9rem;margin:8px 0 0">🎵 Musical Performance (6:00–8:00 PM) is for volunteers sharing a musical gift, such as singing or playing an instrument. Anyone can choose the regular 6:00–8:00 PM shift. Musical instruments need to either have their own power supply or be able to perform without power.</p>
+          <div id="suMusicWrap" hidden>
+            <h3>What musical gift will you share? *</h3>
+            <textarea name="musical_gift" rows="2" placeholder="e.g. violin, choir/vocals, acoustic guitar, battery keyboard. Mention anything else you'll need."></textarea>
+          </div>
+          <h3>Notes / special skills</h3><textarea name="notes" rows="3"></textarea>
+          <p id="suMsg" class="muted"></p>
+          <button class="primary" type="submit">Submit sign-up</button>
+        </form>
+      </div>
+      <div id="thanks" class="thanks" hidden>
+        <h2>Thank you!</h2>
+        <p class="muted">Your availability was received. We'll be in touch with your shift assignment.</p>
+        <button onclick="resetSignup()">Submit another</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ADMINS -->
+  <section class="tab" id="tab-admins">
+    <div id="adminsUnavailable" class="warn" hidden></div>
+    <div class="card">
+      <div class="row" style="margin-bottom:10px">
+        <h2 style="margin:0">Admin accounts</h2>
+        <span class="spacer"></span>
+        <button class="sm noprint" onclick="loadAdmins(true)">Refresh</button>
+      </div>
+      <div class="tablewrap"><table id="adminTable"><tr><td class="muted">Loading…</td></tr></table></div>
+    </div>
+    <div class="grid2 noprint" style="align-items:start">
+      <div class="card">
+        <h2>Add an admin</h2>
+        <p class="muted" style="margin-top:-4px">They can log in right away at the admin link: <a href="#" id="adminLinkText" onclick="copySignupLink('admin');return false" title="Click to copy"></a>. Share the password privately; they can change it under "Change my password."</p>
+        <form id="addAdminForm" autocomplete="off">
+          <label class="f" for="newAdminEmail">Email</label>
+          <input id="newAdminEmail" type="email" required style="margin-bottom:10px">
+          <label class="f" for="newAdminPw">Password <span class="muted">(at least 8 characters)</span></label>
+          <input id="newAdminPw" type="password" minlength="8" autocomplete="new-password" required style="margin-bottom:10px">
+          <label class="f" for="newAdminPw2">Confirm password</label>
+          <input id="newAdminPw2" type="password" minlength="8" autocomplete="new-password" required>
+          <p class="login-msg" id="addAdminMsg"></p>
+          <button class="primary" type="submit">Add admin</button>
+        </form>
+      </div>
+      <div class="card">
+        <h2>Change my password</h2>
+        <p class="muted" style="margin-top:-4px">Signed in as <b id="pwWho"></b>.</p>
+        <form id="pwForm" autocomplete="off">
+          <label class="f" for="curPw">Current password</label>
+          <input id="curPw" type="password" autocomplete="current-password" required style="margin-bottom:10px">
+          <label class="f" for="nextPw">New password <span class="muted">(at least 8 characters)</span></label>
+          <input id="nextPw" type="password" minlength="8" autocomplete="new-password" required style="margin-bottom:10px">
+          <label class="f" for="nextPw2">Confirm new password</label>
+          <input id="nextPw2" type="password" minlength="8" autocomplete="new-password" required>
+          <p class="login-msg" id="pwMsg"></p>
+          <button class="primary" type="submit">Change password</button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- DATA -->
+  <section class="tab" id="tab-data">
+    <div class="card">
+      <h2>Export to Excel &amp; Google Docs</h2>
+      <p class="muted" style="margin-top:-4px">The Excel workbook also opens in Google Sheets (File → Import). The Google Doc button copies a formatted report and opens a new doc. Just paste (Ctrl/Cmd+V).</p>
+      <div class="row" style="margin-bottom:16px">
+        <button class="primary" onclick="exportExcel()">Download Excel workbook (.xlsx)</button>
+        <button class="primary" onclick="exportGoogleDoc()">Create Google Doc</button>
+        <button onclick="downloadDoc()">Download report (.doc)</button>
+      </div>
+      <h2>Other exports</h2>
+      <div class="row">
+        <button onclick="exportContacts()">Contact list (CSV)</button>
+        <button onclick="copyEmails()">Copy all emails</button>
+        <button onclick="exportSchedule()">Schedule (CSV)</button>
+        <button onclick="exportCoverage()">Coverage report (CSV)</button>
+        <button onclick="exportBackup()">Full backup (JSON)</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Import</h2>
+      <p class="muted" style="margin-top:-4px">New sign-ups sync in automatically while you're logged in (every minute, or use Sync now in the header). The CSV import below is a manual fallback: Netlify → Forms → volunteer-signup → Download CSV. Existing volunteers are matched by email and updated.</p>
+      <div class="row">
+        <label class="btn">Import Netlify sign-ups (CSV)<input type="file" accept=".csv" id="importCsv" hidden></label>
+        <label class="btn">Restore backup (JSON)<input type="file" accept=".json" id="importJson" hidden></label>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Reset</h2>
+      <p class="muted" style="margin-top:-4px">The roster is saved on the server and shared by all admins; changes save automatically. "Clear everything" and "Load sample data" change the shared roster for everyone. Download a JSON backup now and then as a safety copy.</p>
+      <div class="row">
+        <button onclick="loadSample()">Load sample data</button>
+        <button class="danger" onclick="clearAll()">Clear everything</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<dialog id="slotDlg">
+  <div class="dlg-h">
+    <div style="flex:1"><b id="dlgTitle"></b><div class="muted" id="dlgSub" style="font-size:.85rem"></div></div>
+    <button class="sm" onclick="slotDlg.close()">Close</button>
+  </div>
+  <div class="dlg-b" id="dlgBody"></div>
+</dialog>
+<div id="toast"></div>
+
+<script>
+/* ============ CONFIG — edit these for your event ============ */
+const CONFIG = {
+  eventName: "Volunteer Schedule",
+  eventSub: "December 1–4 · Volunteer shifts 10:00 AM – 8:00 PM · Musical Performance 6:00 – 8:00 PM",
+  dates: ["Dec 1", "Dec 2", "Dec 3", "Dec 4"],
+  slots: [
+    { id: "10-12", label: "10:00 AM – 12:00 PM" },
+    { id: "12-2",  label: "12:00 PM – 2:00 PM" },
+    { id: "2-4",   label: "2:00 PM – 4:00 PM" },
+    { id: "4-6",   label: "4:00 PM – 6:00 PM" },
+    { id: "6-8",   label: "6:00 PM – 8:00 PM" },
+    // music: true = only for volunteers sharing a musical gift. Runs at the same time as the 6–8 PM shift.
+    { id: "music", time: "6:00 PM – 8:00 PM", label: "Musical Performance, 6:00 PM – 8:00 PM", short: "Music 6-8", music: true }
+  ],
+  musicLabel: "Musical Performance",
+  defaultNeeded: 2,
+  wards: ["Daniels 1st Ward", "Daniels 2nd Ward", "Daniels 3rd Ward", "Daniels Canyon Ward",
+          "Heber 8th Ward", "Heber 12th Ward", "Heber 14th Ward", "Heber 18th Ward", "Wheeler Park Ward"],
+  storageKey: "volunteer-roster-v1",
+  minAge: 16,                    // volunteers must be at least this old...
+  ageAsOf: "2026-12-01",         // ...on this date (the first event day)
+  ageAsOfLabel: "December 1, 2026",
+  /* Admin accounts. Only salted PBKDF2-SHA256 hashes are stored; the passwords themselves are not in this file.
+     To add or change an admin, generate a new salt + hash of "<email lowercase>:<password>" (310,000 iterations). */
+  admins: [
+    { email: "badams@uvu.edu",        salt: "eccc1c7b5139b656ddda54f9a7acf6f4", hash: "23ba8183f83e9a6764b867ff5dd2e0dbea2083c8fadbc8118f97035c3d1828dd" },
+    { email: "r.huntsmanb@gmail.com", salt: "9b5c25e578ad5309bbdd7253164e4981", hash: "703e839c8130ce6a5922034f8a448fbecc8e5b7f06053ef62aac7fae9a10b78c" },
+    { email: "spencer.thunell@gmail.com", salt: "a63345dc53ab32b4011cb049a23792ac", hash: "b27f81860cc588d26341bed86f206739c47de22d4dde1da4f4c4041ec4a87bf9" }
+  ],
+  pbkdf2Iterations: 310000
+};
+/* ============================================================ */
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const slotLabel = id => (CONFIG.slots.find(s => s.id === id) || {}).label || id;
+const isMusicSlot = id => !!(CONFIG.slots.find(s => s.id === id) || {}).music;
+const slotFullLabel = s => s.music ? `🎵 ${s.label}` : s.label;
+const slotShort = id => (CONFIG.slots.find(s => s.id === id) || {}).short || id;
+
+let state = load();
+state.syncedIds ||= [];
+migrateMusicSlot(state);
+/* Before v2 the 6-8 slot was the music slot. Move those picks and assignments to the new "music" slot. */
+function migrateMusicSlot(st){
+  if (st.schemaVersion >= 2) return;
+  (st.volunteers || []).forEach(v => {
+    if (v.slots?.includes("6-8") && (v.music || "").trim()) v.slots = v.slots.map(x => x === "6-8" ? "music" : x);
+  });
+  (st.assignments || []).forEach(a => { if (a.slot === "6-8") a.slot = "music"; });
+  st.schemaVersion = 2;
+}
+function load(){
+  try { const s = JSON.parse(localStorage.getItem(CONFIG.storageKey)); if (s && s.volunteers) return s; } catch(e){}
+  return sampleState();
+}
+function save(){
+  try { localStorage.setItem(CONFIG.storageKey, JSON.stringify(state)); } catch(e){}
+  if (typeof scheduleRosterPush === "function") scheduleRosterPush();
+}
+
+function sampleState(){
+  const v = (name, phone, email, dates, slots, pref, notes="") => ({ id: uid(), name, phone, email, dates, slots, notes });
+  const john  = v("John Smith","555-1111","john@example.com",["Dec 1","Dec 2"],["10-12","12-2"],"Greeter");
+  const sarah = v("Sarah Jones","555-2222","sarah@example.com",["Dec 3","Dec 4"],["2-4","4-6"],"Registration");
+  const maria = v("Maria Garcia","555-3333","maria@example.com",[...CONFIG.dates],["10-12","12-2","2-4"],"Food Service","Food handler's permit");
+  const david = v("David Lee","555-4444","david@example.com",["Dec 1","Dec 3"],["4-6","music"],"Setup","Can lift heavy items");
+  david.music = "Acoustic guitar and vocals";
+  const emily = v("Emily Chen","555-5555","emily@example.com",["Dec 2","Dec 4"],["12-2","2-4","4-6"],"Any","Bilingual (Mandarin)");
+  return {
+    volunteers: [john, sarah, maria, david, emily],
+    assignments: [
+      { vid: john.id, date: "Dec 1", slot: "10-12" },
+      { vid: john.id, date: "Dec 2", slot: "12-2" },
+      { vid: sarah.id, date: "Dec 3", slot: "2-4" },
+      { vid: sarah.id, date: "Dec 4", slot: "4-6" },
+      { vid: maria.id, date: "Dec 1", slot: "10-12" }
+    ],
+    needed: {},
+    schemaVersion: 2
+  };
+}
+
+/* ---------- core logic ---------- */
+const K = (d, s) => d + "|" + s;
+const need = (d, s) => state.needed[K(d, s)] ?? CONFIG.defaultNeeded;
+const inSlot = (d, s) => state.assignments.filter(a => a.date === d && a.slot === s);
+const shiftsOf = vid => state.assignments.filter(a => a.vid === vid);
+const vById = id => state.volunteers.find(v => v.id === id);
+// Music slots also require the volunteer to have listed a musical gift
+/* Age in whole years on a given date; null if the birth date is missing or invalid. */
+function ageOn(dob, asOf = CONFIG.ageAsOf){
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(dob || "").trim()); if (!m) return null;
+  const [y, mo, d] = [+m[1], +m[2], +m[3]], [ay, am, ad] = asOf.split("-").map(Number);
+  if (mo < 1 || mo > 12 || d < 1 || d > 31 || y < 1900) return null;
+  return ay - y - ((am < mo || (am === mo && ad < d)) ? 1 : 0);
+}
+const isUnderAge = v => { const a = ageOn(v.dob); return a !== null && a < CONFIG.minAge; };
+const latestAllowedDob = () => { const [y, m, d] = CONFIG.ageAsOf.split("-"); return `${+y - CONFIG.minAge}-${m}-${d}`; };
+const fmtDob = dob => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dob || ""); return m ? `${+m[2]}/${+m[3]}/${m[1]}` : ""; };
+const avail = (v, d, s) => !isUnderAge(v) && v.dates.includes(d) && v.slots.includes(s) && (!isMusicSlot(s) || !!(v.music || "").trim());
+function status(d, s){
+  const n = inSlot(d, s).length, m = need(d, s);
+  return n > m ? "over" : n === m ? "full" : n === 0 ? "empty" : "under";
+}
+const statusText = { full: "Staffed", under: "Understaffed", empty: "Unstaffed", over: "Overbooked" };
+
+function tryAssign(vid, d, s, override = false){
+  const v = vById(vid);
+  if (state.assignments.some(a => a.vid === vid && a.date === d && a.slot === s))
+    return { ok: false, msg: `${v.name} is already on this shift.` };
+  if (inSlot(d, s).length >= need(d, s))
+    return { ok: false, msg: `This shift is full (${need(d, s)} needed).` };
+  if (!avail(v, d, s) && !override)
+    return { ok: false, conflict: true, msg: `${v.name} isn't available ${d}, ${slotLabel(s)}.` };
+  state.assignments.push({ vid, date: d, slot: s });
+  return { ok: true };
+}
+function unassign(vid, d, s){
+  state.assignments = state.assignments.filter(a => !(a.vid === vid && a.date === d && a.slot === s));
+}
+function conflicts(){
+  const out = [];
+  state.assignments.forEach(a => {
+    const v = vById(a.vid);
+    if (v && isUnderAge(v)) out.push(`${v.name} is assigned ${a.date}, ${slotLabel(a.slot)} but will be under ${CONFIG.minAge} on ${CONFIG.ageAsOfLabel}.`);
+    else if (v && !avail(v, a.date, a.slot)) out.push(isMusicSlot(a.slot) && !(v.music || "").trim() && v.dates.includes(a.date) && v.slots.includes(a.slot)
+      ? `${v.name} is assigned ${a.date}, ${slotLabel(a.slot)} but hasn't listed a musical gift.`
+      : `${v.name} is assigned ${a.date}, ${slotLabel(a.slot)} but isn't available then.`);
+  });
+  state.volunteers.filter(v => isUnderAge(v) && !shiftsOf(v.id).length)
+    .forEach(v => out.push(`${v.name} signed up but will be under ${CONFIG.minAge} on ${CONFIG.ageAsOfLabel} (born ${fmtDob(v.dob)}).`));
+  eachShift((d, s) => {
+    const n = inSlot(d, s).length, m = need(d, s);
+    if (n > m) out.push(`${d}, ${slotLabel(s)} is overbooked: ${n} assigned, ${m} needed.`);
+  });
+  return out;
+}
+function eachShift(fn){ CONFIG.dates.forEach(d => CONFIG.slots.forEach(s => fn(d, s.id))); }
+
+function autoAssign(){
+  let added = 0;
+  eachShift((d, s) => {
+    while (inSlot(d, s).length < need(d, s)){
+      const c = state.volunteers
+        .filter(v => avail(v, d, s) && !inSlot(d, s).some(a => a.vid === v.id))
+        .sort((a, b) => shiftsOf(a.id).length - shiftsOf(b.id).length || a.name.localeCompare(b.name));
+      if (!c.length) break;
+      state.assignments.push({ vid: c[0].id, date: d, slot: s });
+      added++;
+    }
+  });
+  return added;
+}
+
+/* ---------- rendering ---------- */
+function renderView(){
+  renderDashboard(); renderMatrix(); renderVolunteers(); renderTracking();
+  if (slotDlg.open) renderSlotDialog();
+}
+function renderAll(){
+  save();
+  renderDashboard(); renderMatrix(); renderVolunteers(); renderTracking();
+  if (slotDlg.open) renderSlotDialog();
+}
+
+function renderDashboard(){
+  let needed = 0, filled = 0, open = 0, staffed = 0, total = 0;
+  eachShift((d, s) => {
+    const n = inSlot(d, s).length, m = need(d, s);
+    total++; needed += m; filled += Math.min(n, m); open += Math.max(0, m - n);
+    if (n >= m) staffed++;
+  });
+  const pct = needed ? Math.round(filled / needed * 100) : 100;
+  $("#stats").innerHTML = [
+    [state.volunteers.length, "Volunteers"],
+    [`${pct}%`, "Coverage"],
+    [`${staffed}/${total}`, "Shifts fully staffed"],
+    [open, "Open spots"],
+    [state.assignments.length, "Total assignments"]
+  ].map(([b, s]) => `<div class="stat"><b>${b}</b><span>${s}</span></div>`).join("");
+
+  const c = conflicts();
+  $("#conflicts").innerHTML = c.length
+    ? `<div class="warn"><b>${c.length} conflict${c.length > 1 ? "s" : ""} found</b><ul>${c.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>`
+    : `<div class="ok">No scheduling conflicts.</div>`;
+
+  const only = $("#underOnly").checked;
+  let rows = "";
+  eachShift((d, s) => {
+    const n = inSlot(d, s).length, m = need(d, s), st = status(d, s);
+    if (only && n >= m) return;
+    rows += `<tr>
+      <td>${esc(d)}</td><td>${esc(slotLabel(s))}</td>
+      <td class="c"><input class="num" type="number" min="0" value="${m}" data-need="${esc(K(d, s))}" aria-label="Volunteers needed"></td>
+      <td class="c">${n}</td><td class="c">${Math.max(0, m - n)}</td>
+      <td><span class="pill s-${st}">${statusText[st]}</span></td></tr>`;
+  });
+  $("#coverage").innerHTML = `<thead><tr><th>Date</th><th>Shift</th><th class="c">Needed</th><th class="c">Assigned</th><th class="c">Remaining</th><th>Status</th></tr></thead>
+    <tbody>${rows || `<tr><td colspan="6" class="muted">Every shift is fully staffed.</td></tr>`}</tbody>`;
+}
+
+function renderMatrix(){
+  let h = `<thead><tr><th>Time</th>${CONFIG.dates.map(d => `<th>${esc(d)}</th>`).join("")}</tr></thead><tbody>`;
+  CONFIG.slots.forEach(s => {
+    h += `<tr><th style="white-space:nowrap">${esc(s.time || s.label)}${s.music ? `<br><small style="text-transform:none;letter-spacing:0">🎵 ${esc(CONFIG.musicLabel)}</small>` : ""}</th>`;
+    CONFIG.dates.forEach(d => {
+      const list = inSlot(d, s.id).map(a => vById(a.vid)).filter(Boolean);
+      const st = status(d, s.id);
+      const names = list.slice(0, 3).map(v => esc(v.name)).join(", ") + (list.length > 3 ? ` +${list.length - 3}` : "");
+      h += `<td><button class="cell s-${st}" data-cell="${esc(d)}|${esc(s.id)}">
+        <span class="cnt">${list.length}/${need(d, s.id)}</span>
+        <span class="names">${names || "<span class='muted'>Open</span>"}</span></button></td>`;
+    });
+    h += `</tr>`;
+  });
+  $("#matrix").innerHTML = h + "</tbody>";
+}
+
+function renderVolunteers(){
+  const q = $("#vSearch").value.trim().toLowerCase();
+  const wf = $("#vWardFilter").value;
+  const list = state.volunteers
+    .filter(v => !q || [v.name, v.email, v.phone, v.notes, v.music, v.ward].join(" ").toLowerCase().includes(q))
+    .filter(v => wf === "__all" || (wf === "__none" ? !v.ward : v.ward === wf))
+    .sort((a, b) => a.name.localeCompare(b.name));
+  $("#vCount").textContent = list.length === state.volunteers.length ? `(${state.volunteers.length})` : `(${list.length} of ${state.volunteers.length})`;
+  $("#vTable").innerHTML = `<thead><tr><th>Name</th><th>Ward</th><th>Contact</th><th>Dates</th><th>Times</th><th class="c">Shifts</th><th class="noprint"></th></tr></thead><tbody>` +
+    (list.map(v => `<tr>
+      <td><b>${esc(v.name)}</b>${isUnderAge(v) ? ` <span class="pill s-empty">Under ${CONFIG.minAge}</span>` : ""}${v.music ? `<br><small>🎵 ${esc(v.music)}</small>` : ""}${v.notes ? `<br><small class="muted">${esc(v.notes)}</small>` : ""}</td>
+      <td>${v.ward ? esc(v.ward) : `<span class="muted">—</span>`}</td>
+      <td>${esc(v.phone)}<br><small class="muted">${esc(v.email)}</small></td>
+      <td>${v.dates.map(d => `<span class="tag">${esc(d)}</span>`).join("")}</td>
+      <td>${v.slots.map(s => `<span class="tag">${esc(slotShort(s))}</span>`).join("")}</td>
+      <td class="c">${shiftsOf(v.id).length}</td>
+      <td class="noprint" style="white-space:nowrap"><button class="sm" data-edit="${v.id}">Edit</button> <button class="sm danger" data-del="${v.id}">Delete</button></td>
+    </tr>`).join("") || `<tr><td colspan="7" class="muted">${state.volunteers.length ? "No volunteers match." : "No volunteers yet."}</td></tr>`) + "</tbody>";
+}
+
+function renderTracking(){
+  const vols = [...state.volunteers].sort((a, b) => a.name.localeCompare(b.name));
+  let h = `<thead><tr><th>Volunteer</th>${CONFIG.dates.map(d => `<th>${esc(d)}</th>`).join("")}<th class="c">Total shifts</th></tr></thead><tbody>`;
+  vols.forEach(v => {
+    const mine = shiftsOf(v.id);
+    h += `<tr><td>${esc(v.name)}</td>` +
+      CONFIG.dates.map(d => `<td>${mine.filter(a => a.date === d)
+        .sort((a, b) => CONFIG.slots.findIndex(s => s.id === a.slot) - CONFIG.slots.findIndex(s => s.id === b.slot))
+        .map(a => `<span class="tag${avail(v, a.date, a.slot) ? "" : " s-empty"}">${esc(slotShort(a.slot))}</span>`).join("")}</td>`).join("") +
+      `<td class="c"><b>${mine.length}</b></td></tr>`;
+  });
+  h += `</tbody><tfoot><tr><th>Assigned per day</th>${CONFIG.dates.map(d => `<th>${state.assignments.filter(a => a.date === d).length}</th>`).join("")}<th class="c">${state.assignments.length}</th></tr></tfoot>`;
+  $("#tracking").innerHTML = vols.length ? h : `<tr><td class="muted">No volunteers yet.</td></tr>`;
+}
+
+/* ---------- shift dialog ---------- */
+const slotDlg = $("#slotDlg");
+let cur = null, showUnavail = false;
+function openSlot(d, s){ cur = { d, s }; showUnavail = false; renderSlotDialog(); slotDlg.showModal(); }
+function renderSlotDialog(){
+  const { d, s } = cur, n = inSlot(d, s).length, m = need(d, s), full = n >= m;
+  $("#dlgTitle").textContent = `${d} · ${isMusicSlot(s) ? "🎵 " : ""}${slotLabel(s)}`;
+  $("#dlgSub").innerHTML = `${n} of ${m} assigned · <span class="pill s-${status(d, s)}">${statusText[status(d, s)]}</span>`;
+  const assigned = inSlot(d, s).map(a => vById(a.vid)).filter(Boolean);
+  const others = state.volunteers.filter(v => !assigned.includes(v))
+    .sort((a, b) => shiftsOf(a.id).length - shiftsOf(b.id).length || a.name.localeCompare(b.name));
+  const ok = others.filter(v => avail(v, d, s)), no = others.filter(v => !avail(v, d, s));
+  const li = (v, btn) => `<li><div class="who">${esc(v.name)} <small>${esc(v.phone)}${v.ward ? ` · ${esc(v.ward)}` : ""} · ${shiftsOf(v.id).length} shift(s)${v.music ? ` · 🎵 ${esc(v.music)}` : ""}</small></div>${btn}</li>`;
+  $("#dlgBody").innerHTML = `
+    <h3 style="margin-top:0">Assigned</h3>
+    <ul class="list">${assigned.map(v => li(v, `${avail(v, d, s) ? "" : `<span class="pill s-empty">Not available</span>`}<button class="sm danger" data-rm="${v.id}">Remove</button>`)).join("") || `<li class="muted">No one yet.</li>`}</ul>
+    <h3>Available volunteers</h3>
+    ${full ? `<p class="muted">Shift is full. Remove someone or raise the number needed on the Dashboard.</p>` : ""}
+    <ul class="list">${ok.map(v => li(v, `<button class="sm primary" data-add="${v.id}" ${full ? "disabled" : ""}>Assign</button>`)).join("") || `<li class="muted">No other available volunteers for this shift.</li>`}</ul>
+    ${no.length ? `<label class="row" style="margin-top:12px;gap:6px"><input type="checkbox" id="showUn" ${showUnavail ? "checked" : ""}> Show ${no.length} unavailable volunteer(s)</label>
+      ${showUnavail ? `<ul class="list">${no.map(v => li(v, `<button class="sm" data-force="${v.id}" ${full ? "disabled" : ""}>Assign anyway</button>`)).join("")}</ul>` : ""}` : ""}`;
+}
+$("#dlgBody").addEventListener("click", e => {
+  const t = e.target, { d, s } = cur;
+  if (t.dataset.rm){ unassign(t.dataset.rm, d, s); renderAll(); }
+  else if (t.dataset.add){ const r = tryAssign(t.dataset.add, d, s); if (!r.ok) toast(r.msg); renderAll(); }
+  else if (t.dataset.force){
+    const v = vById(t.dataset.force);
+    if (confirm(`${v.name} didn't list ${d}, ${slotLabel(s)} as available. Assign anyway?`)){
+      const r = tryAssign(v.id, d, s, true); if (!r.ok) toast(r.msg); renderAll();
+    }
+  }
+});
+$("#dlgBody").addEventListener("change", e => { if (e.target.id === "showUn"){ showUnavail = e.target.checked; renderSlotDialog(); } });
+
+/* ---------- volunteer form ---------- */
+let editingId = null;
+const vForm = $("#vForm");
+function checkboxes(el, items, cls, getVal = x => x, getLabel = x => x){
+  el.innerHTML = items.map(x => `<label><input type="checkbox" class="${cls}" value="${esc(getVal(x))}"> ${esc(getLabel(x))}</label>`).join("");
+}
+function fillForm(v){
+  vForm.name.value = v?.name || ""; vForm.phone.value = v?.phone || ""; vForm.email.value = v?.email || "";
+  vForm.notes.value = v?.notes || ""; vForm.music.value = v?.music || ""; vForm.ward.value = v?.ward || ""; vForm.dob.value = v?.dob || "";
+  vForm.querySelectorAll(".v-date").forEach(c => c.checked = !!v?.dates.includes(c.value));
+  vForm.querySelectorAll(".v-slot").forEach(c => c.checked = !!v?.slots.includes(c.value));
+  $("#vFormTitle").textContent = v ? `Edit ${v.name}` : "Add volunteer";
+  $("#vSubmit").textContent = v ? "Save changes" : "Add volunteer";
+  $("#vCancel").hidden = !v;
+}
+vForm.addEventListener("submit", e => {
+  e.preventDefault();
+  const data = {
+    name: vForm.name.value.trim(), phone: vForm.phone.value.trim(), email: vForm.email.value.trim(),
+    notes: vForm.notes.value.trim(), music: vForm.music.value.trim(), ward: vForm.ward.value, dob: vForm.dob.value,
+    dates: [...vForm.querySelectorAll(".v-date:checked")].map(c => c.value),
+    slots: [...vForm.querySelectorAll(".v-slot:checked")].map(c => c.value)
+  };
+  if (!data.name) return;
+  const dupe = data.email && state.volunteers.find(v => v.id !== editingId && v.email.toLowerCase() === data.email.toLowerCase());
+  if (dupe) return toast(`${dupe.name} already uses that email.`);
+  if (editingId){ Object.assign(vById(editingId), data); toast("Volunteer updated"); }
+  else { state.volunteers.push({ id: uid(), ...data }); toast(`${data.name} added`); }
+  editingId = null; fillForm(null); renderAll();
+});
+$("#vCancel").onclick = () => { editingId = null; fillForm(null); };
+$("#vTable").addEventListener("click", e => {
+  const { edit, del } = e.target.dataset;
+  if (edit){ editingId = edit; fillForm(vById(edit)); vForm.scrollIntoView({ behavior: "smooth" }); }
+  if (del){
+    const v = vById(del), n = shiftsOf(del).length;
+    if (confirm(`Delete ${v.name}?${n ? ` This also removes their ${n} shift assignment(s).` : ""}`)){
+      state.volunteers = state.volunteers.filter(x => x.id !== del);
+      state.assignments = state.assignments.filter(a => a.vid !== del);
+      if (editingId === del){ editingId = null; fillForm(null); }
+      renderAll();
+    }
+  }
+});
+$("#vSearch").addEventListener("input", renderVolunteers);
+$("#vWardFilter").addEventListener("change", renderVolunteers);
+
+/* ---------- dashboard events ---------- */
+$("#underOnly").addEventListener("change", renderDashboard);
+$("#coverage").addEventListener("change", e => {
+  const k = e.target.dataset.need; if (!k) return;
+  const val = Math.max(0, parseInt(e.target.value, 10) || 0);
+  if (val === CONFIG.defaultNeeded) delete state.needed[k]; else state.needed[k] = val;
+  renderAll();
+});
+$("#matrix").addEventListener("click", e => {
+  const b = e.target.closest("[data-cell]"); if (!b) return;
+  const [d, s] = b.dataset.cell.split("|"); openSlot(d, s);
+});
+$("#autoBtn").onclick = () => {
+  if (!confirm("Fill open spots with available volunteers, spreading shifts evenly? Existing assignments are kept.")) return;
+  const n = autoAssign(); renderAll();
+  toast(n ? `Assigned ${n} shift(s)` : "No available volunteers to fill open spots");
+};
+
+/* ---------- tabs ---------- */
+function showTab(name){
+  if (name === "admins") setTimeout(() => loadAdmins(), 0);
+  document.querySelectorAll("nav.tabs button").forEach(b => b.classList.toggle("active", b.dataset.tab === name));
+  document.querySelectorAll("section.tab").forEach(s => s.classList.toggle("active", s.id === "tab-" + name));
+}
+$("#tabs").addEventListener("click", e => { if (e.target.dataset.tab) showTab(e.target.dataset.tab); });
+
+/* ---------- sign-up (Netlify Forms) ---------- */
+const suForm = $("#signupForm");
+suForm.addEventListener("submit", async e => {
+  e.preventDefault();
+  const dates = [...suForm.querySelectorAll(".su-date:checked")].map(c => c.value);
+  const times = [...suForm.querySelectorAll(".su-slot:checked")].map(c => c.value);
+  const msg = $("#suMsg");
+  const wardEl = suForm.elements.ward;
+  if (signupMode === "ward"){
+    if (!wardEl.value){ msg.textContent = "Please select your ward."; wardEl.focus(); return; }
+  } else wardEl.value = "";
+  suForm.elements.registration_type.value = signupMode === "ward" ? "Ward Member" : "General";
+  const first = suForm.elements.first_name.value.trim(), last = suForm.elements.last_name.value.trim();
+  if (!first || !last){ msg.textContent = "Please enter your first and last name."; (first ? suForm.elements.last_name : suForm.elements.first_name).focus(); return; }
+  suForm.elements.name.value = `${first} ${last}`;
+  if (!dates.length || !times.length){ msg.textContent = "Please choose at least one date and one time."; return; }
+  const dobEl = suForm.elements.date_of_birth, age = ageOn(dobEl.value);
+  if (age === null){ msg.textContent = "Please enter your date of birth."; dobEl.focus(); return; }
+  if (age < CONFIG.minAge){ msg.textContent = `Sorry, volunteers must be at least ${CONFIG.minAge} years old by ${CONFIG.ageAsOfLabel}.`; dobEl.focus(); return; }
+  if (age > 120){ msg.textContent = "Please check your date of birth."; dobEl.focus(); return; }
+  const giftEl = suForm.elements.musical_gift;
+  if (times.some(isMusicSlot)){
+    if (!giftEl.value.trim()){ msg.textContent = "Musical Performance is for volunteers sharing a musical gift. Please describe the musical gift you'll share, or uncheck Musical Performance."; giftEl.focus(); return; }
+  } else giftEl.value = "";
+  suForm.elements.available_dates.value = dates.join("; ");
+  suForm.elements.available_times.value = times.join("; ");
+  msg.textContent = "Submitting…";
+  try {
+    const r = await fetch("/", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams(new FormData(suForm)).toString()
+    });
+    if (!r.ok) throw new Error(r.status);
+    msg.textContent = ""; $("#signupWrap").hidden = true; $("#thanks").hidden = false;
+  } catch(err){
+    msg.textContent = "Sorry, that didn't go through. (Sign-ups only work on the live Netlify site, not when the file is opened locally.)";
+  }
+});
+function syncMusicField(){ $("#suMusicWrap").hidden = ![...suForm.querySelectorAll(".su-slot:checked")].some(c => isMusicSlot(c.value)); }
+$("#suSlots").addEventListener("change", syncMusicField);
+function resetSignup(){ suForm.reset(); syncMusicField(); setSignupMode(signupMode); $("#signupWrap").hidden = false; $("#thanks").hidden = true; }
+function copySignupLink(hash){
+  const url = hash === "admin" ? siteRoot() + "admin" : siteRoot() + "#" + hash;
+  const label = hash === "admin" ? "Admin login link" : hash === "ward-signup" ? "Ward member link" : "General sign-up link";
+  navigator.clipboard?.writeText(url).then(() => toast(`${label} copied`), () => prompt("Copy this link:", url));
+}
+
+/* Two sign-up links: #signup (general) and #ward-signup (adds a required Ward dropdown) */
+let signupMode = "general";
+const modeFromHash = () => location.hash === "#ward-signup" ? "ward" : "general";
+function setSignupMode(mode){
+  signupMode = mode;
+  const ward = mode === "ward";
+  $("#suWardWrap").hidden = !ward;
+  $("#suWard").required = ward;
+  if (!ward) $("#suWard").value = "";
+  suForm.elements.registration_type.value = ward ? "Ward Member" : "General";
+  $("#suTitle").textContent = ward ? "Ward member volunteer sign-up" : "Volunteer sign-up";
+  $("#prevGeneral").classList.toggle("primary", !ward);
+  $("#prevWard").classList.toggle("primary", ward);
+}
+
+/* ---------- export / import ---------- */
+const csvCell = v => `"${String(v ?? "").replace(/"/g, '""')}"`;
+const toCSV = rows => rows.map(r => r.map(csvCell).join(",")).join("\r\n");
+function download(name, text, type = "text/csv"){
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+function exportContacts(){
+  download("volunteer-contacts.csv", toCSV([["Name","Ward","Phone","Email","Available dates","Available times","Musical gift","Date of birth","Notes","Total shifts","Assigned shifts"],
+    ...state.volunteers.map(v => [v.name, v.ward || "", v.phone, v.email, v.dates.join("; "), v.slots.map(slotShort).join("; "), v.music, fmtDob(v.dob), v.notes,
+      shiftsOf(v.id).length, shiftsOf(v.id).map(a => `${a.date} ${slotShort(a.slot)}`).join("; ")])]));
+}
+function exportSchedule(){
+  const rows = [["Date","Shift","Volunteer","Phone","Email"]];
+  eachShift((d, s) => inSlot(d, s).forEach(a => { const v = vById(a.vid); if (v) rows.push([d, slotLabel(s), v.name, v.phone, v.email]); }));
+  download("volunteer-schedule.csv", toCSV(rows));
+}
+function exportCoverage(){
+  const rows = [["Date","Shift","Needed","Assigned","Remaining","Status"]];
+  eachShift((d, s) => { const n = inSlot(d, s).length, m = need(d, s); rows.push([d, slotLabel(s), m, n, Math.max(0, m - n), statusText[status(d, s)]]); });
+  download("coverage-report.csv", toCSV(rows));
+}
+function exportBackup(){
+  download(`volunteer-roster-backup-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(state, null, 2), "application/json");
+}
+/* ---------- Excel export ---------- */
+function exportExcel(){
+  if (typeof XLSX === "undefined") return toast("Excel library didn't load. Check your internet connection.");
+  const wb = XLSX.utils.book_new();
+  const addSheet = (name, rows, widths) => {
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    ws["!cols"] = widths.map(w => ({ wch: w }));
+    XLSX.utils.book_append_sheet(wb, ws, name);
+  };
+
+  // 1. Schedule matrix (names in each cell)
+  const matrix = [["Time", ...CONFIG.dates]];
+  CONFIG.slots.forEach(s => matrix.push([s.label, ...CONFIG.dates.map(d => {
+    const names = inSlot(d, s.id).map(a => vById(a.vid)?.name).filter(Boolean);
+    return `${names.length}/${need(d, s.id)}${names.length ? ": " + names.join(", ") : ""}`;
+  })]));
+  addSheet("Schedule Matrix", matrix, [22, ...CONFIG.dates.map(() => 40)]);
+
+  // 2. Coverage / staffing dashboard
+  const cov = [["Date", "Shift", "Volunteers Needed", "Assigned", "Remaining", "Status"]];
+  eachShift((d, s) => { const n = inSlot(d, s).length, m = need(d, s); cov.push([d, slotLabel(s), m, n, Math.max(0, m - n), statusText[status(d, s)]]); });
+  addSheet("Coverage Report", cov, [10, 22, 18, 10, 11, 14]);
+
+  // 3. Assignment tracking
+  const trk = [["Volunteer", ...CONFIG.dates, "Total Shifts"]];
+  [...state.volunteers].sort((a, b) => a.name.localeCompare(b.name)).forEach(v => {
+    const mine = shiftsOf(v.id);
+    trk.push([v.name, ...CONFIG.dates.map(d => mine.filter(a => a.date === d).map(a => slotShort(a.slot)).join(", ")), mine.length]);
+  });
+  addSheet("Assignments", trk, [24, ...CONFIG.dates.map(() => 16), 12]);
+
+  // 4. Schedule detail (one row per assignment, with contact info)
+  const det = [["Date", "Shift", "Volunteer", "Ward", "Phone", "Email", "Musical Gift"]];
+  eachShift((d, s) => inSlot(d, s).forEach(a => { const v = vById(a.vid); if (v) det.push([d, slotLabel(s), v.name, v.ward || "", v.phone, v.email, isMusicSlot(s) ? v.music || "" : ""]); }));
+  addSheet("Shift Detail", det, [10, 22, 24, 22, 14, 28, 30]);
+
+  // 5. Volunteer directory
+  const vol = [["Name", "Ward", "Phone", "Email", "Available Dates", "Available Times", "Musical Gift", "Date of Birth", "Notes / Skills", "Total Shifts"]];
+  [...state.volunteers].sort((a, b) => a.name.localeCompare(b.name))
+    .forEach(v => vol.push([v.name, v.ward || "", v.phone, v.email, v.dates.join(", "), v.slots.map(slotShort).join(", "), v.music || "", fmtDob(v.dob), v.notes, shiftsOf(v.id).length]));
+  addSheet("Volunteers", vol, [24, 22, 14, 28, 26, 26, 30, 14, 34, 12]);
+
+  // Volunteers by ward
+  const byWard = [["Ward", "Volunteers", "Assigned Shifts"]];
+  [...CONFIG.wards, ""].forEach(w => {
+    const vs = state.volunteers.filter(v => (v.ward || "") === w);
+    if (w || vs.length) byWard.push([w || "Not a ward member", vs.length, vs.reduce((n, v) => n + shiftsOf(v.id).length, 0)]);
+  });
+  addSheet("By Ward", byWard, [24, 12, 16]);
+
+  // Music performance lineup (6–8 PM)
+  const mus = [["Date", "Shift", "Performer", "Musical Gift", "Phone", "Email"]];
+  eachShift((d, s) => { if (isMusicSlot(s)) inSlot(d, s).forEach(a => { const v = vById(a.vid); if (v) mus.push([d, slotLabel(s), v.name, v.music || "", v.phone, v.email]); }); });
+  addSheet("Music Lineup", mus, [10, 22, 24, 32, 14, 28]);
+
+  // 6. Conflicts
+  const c = conflicts();
+  addSheet("Conflicts", [["Conflict"], ...(c.length ? c.map(x => [x]) : [["No scheduling conflicts."]])], [90]);
+
+  XLSX.writeFile(wb, `volunteer-schedule-${new Date().toISOString().slice(0, 10)}.xlsx`);
+  toast("Excel workbook downloaded");
+}
+
+/* ---------- Google Doc / Word report ---------- */
+function buildReportHTML(){
+  const td = "border:1px solid #999;padding:4px 8px;vertical-align:top;font-size:10pt";
+  const th = td + ";background:#e8eef7;font-weight:bold";
+  const color = { full: "#dcf5e3", under: "#fff4d1", empty: "#fde2e1", over: "#ede5ff" };
+  const table = (head, rows) => `<table style="border-collapse:collapse;width:100%">
+    <tr>${head.map(h => `<th style="${th}">${esc(h)}</th>`).join("")}</tr>
+    ${rows.map(r => `<tr>${r.map(c => typeof c === "object" ? `<td style="${td};background:${c.bg}">${esc(c.v)}</td>` : `<td style="${td}">${esc(c)}</td>`).join("")}</tr>`).join("")}</table>`;
+
+  let needed = 0, filled = 0, open = 0;
+  eachShift((d, s) => { const n = inSlot(d, s).length, m = need(d, s); needed += m; filled += Math.min(n, m); open += Math.max(0, m - n); });
+
+  const matrixRows = CONFIG.slots.map(s => [s.label, ...CONFIG.dates.map(d => {
+    const names = inSlot(d, s.id).map(a => vById(a.vid)?.name).filter(Boolean);
+    return { v: `${names.length}/${need(d, s.id)}  ${names.join(", ")}`, bg: color[status(d, s.id)] };
+  })]);
+  const covRows = []; eachShift((d, s) => {
+    const n = inSlot(d, s).length, m = need(d, s), st = status(d, s);
+    covRows.push([d, slotLabel(s), m, n, Math.max(0, m - n), { v: statusText[st], bg: color[st] }]);
+  });
+  const vols = [...state.volunteers].sort((a, b) => a.name.localeCompare(b.name));
+  const trkRows = vols.map(v => { const mine = shiftsOf(v.id); return [v.name, ...CONFIG.dates.map(d => mine.filter(a => a.date === d).map(a => slotShort(a.slot)).join(", ")), mine.length]; });
+  const dirRows = vols.map(v => [v.name, v.ward || "", v.phone, v.email, v.music || "", v.notes]);
+  const musRows = []; eachShift((d, s) => { if (isMusicSlot(s)) inSlot(d, s).forEach(a => { const v = vById(a.vid); if (v) musRows.push([d, v.name, v.music || ""]); }); });
+  const c = conflicts();
+
+  return `<div style="font-family:Arial,sans-serif">
+    <h1 style="font-size:20pt;margin:0">${esc(CONFIG.eventName)}</h1>
+    <p style="color:#555;margin:2px 0 12px">${esc(CONFIG.eventSub)} · Generated ${new Date().toLocaleString()}</p>
+    <p><b>Volunteers:</b> ${state.volunteers.length} &nbsp; <b>Coverage:</b> ${needed ? Math.round(filled / needed * 100) : 100}% &nbsp; <b>Open spots:</b> ${open} &nbsp; <b>Conflicts:</b> ${c.length}</p>
+    <h2 style="font-size:14pt">Schedule</h2>${table(["Time", ...CONFIG.dates], matrixRows)}
+    <h2 style="font-size:14pt">Coverage report</h2>${table(["Date", "Shift", "Needed", "Assigned", "Remaining", "Status"], covRows)}
+    <h2 style="font-size:14pt">Assignments by volunteer</h2>${table(["Volunteer", ...CONFIG.dates, "Total"], trkRows)}
+    <h2 style="font-size:14pt">🎵 Music lineup (6:00–8:00 PM)</h2>${musRows.length ? table(["Date", "Performer", "Musical gift"], musRows) : "<p>No performers assigned yet.</p>"}
+    <h2 style="font-size:14pt">Volunteer directory</h2>${table(["Name", "Ward", "Phone", "Email", "Musical gift", "Notes / Skills"], dirRows)}
+    ${c.length ? `<h2 style="font-size:14pt">Conflicts</h2><ul>${c.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
+  </div>`;
+}
+async function exportGoogleDoc(){
+  const html = buildReportHTML();
+  const tmp = document.createElement("div"); tmp.innerHTML = html;
+  try {
+    await navigator.clipboard.write([new ClipboardItem({
+      "text/html": new Blob([html], { type: "text/html" }),
+      "text/plain": new Blob([tmp.innerText], { type: "text/plain" })
+    })]);
+  } catch(err){
+    toast("Couldn't copy in this browser. Downloading a .doc you can upload to Google Drive instead.");
+    return downloadDoc();
+  }
+  const w = window.open("https://docs.new", "_blank");
+  toast(w ? "Report copied. Paste it into the new Google Doc (Ctrl/Cmd+V)." : "Report copied. Open docs.new and paste (Ctrl/Cmd+V).");
+}
+function downloadDoc(){
+  const doc = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><title>${esc(CONFIG.eventName)}</title></head><body>${buildReportHTML()}</body></html>`;
+  download(`volunteer-schedule-${new Date().toISOString().slice(0, 10)}.doc`, "\ufeff" + doc, "application/msword");
+}
+
+function copyEmails(){
+  const list = state.volunteers.map(v => v.email).filter(Boolean).join(", ");
+  if (!list) return toast("No emails on file");
+  navigator.clipboard?.writeText(list).then(() => toast("Emails copied"), () => prompt("Copy these emails:", list));
+}
+function parseCSV(t){
+  const rows = []; let row = [], f = "", q = false;
+  for (let i = 0; i < t.length; i++){
+    const c = t[i];
+    if (q){ if (c === '"'){ if (t[i + 1] === '"'){ f += '"'; i++; } else q = false; } else f += c; }
+    else if (c === '"') q = true;
+    else if (c === ","){ row.push(f); f = ""; }
+    else if (c === "\n" || c === "\r"){ if (c === "\r" && t[i + 1] === "\n") i++; row.push(f); rows.push(row); row = []; f = ""; }
+    else f += c;
+  }
+  if (f || row.length){ row.push(f); rows.push(row); }
+  return rows.filter(r => r.some(x => x.trim()));
+}
+/* Add or update one volunteer from a sign-up (Netlify submission data or CSV row). Matches by email. */
+function upsertSignup(f){
+  const str = k => String(f[k] ?? "").trim();
+  const name = str("name") || [str("first_name"), str("last_name")].filter(Boolean).join(" ");
+  if (!name) return null;
+  const norm = x => x.replace(/\s+/g, "").toLowerCase();
+  const wardRaw = str("ward");
+  const data = {
+    name, phone: str("phone"), email: str("email"), notes: str("notes"), music: str("musical_gift"), dob: str("date_of_birth"),
+    ward: CONFIG.wards.find(x => x.toLowerCase() === wardRaw.toLowerCase()) || wardRaw,
+    dates: str("available_dates").split(/[;,]/).map(x => x.trim()).filter(x => CONFIG.dates.includes(x)),
+    slots: str("available_times").split(/[;,]/).map(norm).filter(x => CONFIG.slots.some(s => s.id === x))
+  };
+  // Sign-ups from the older form (no form_version): picking 6-8 with a musical gift meant the music slot
+  if (str("form_version") !== "2" && data.music && data.slots.includes("6-8") && !data.slots.includes("music"))
+    data.slots = data.slots.map(x => x === "6-8" ? "music" : x);
+  const ex = state.volunteers.find(v => (data.email && (v.email || "").toLowerCase() === data.email.toLowerCase()) || (!data.email && v.name === name));
+  if (ex){
+    if (!data.ward && ex.ward) delete data.ward;   // a later general sign-up doesn't erase a known ward
+    if (!data.dob && ex.dob) delete data.dob;
+    Object.assign(ex, data); return "updated";
+  }
+  const id = data.email ? "e:" + data.email.toLowerCase() : uid();
+  state.volunteers.push({ id: state.volunteers.some(v => v.id === id) ? uid() : id, ...data }); return "added";
+}
+
+$("#importCsv").addEventListener("change", async e => {
+  const file = e.target.files[0]; if (!file) return;
+  const rows = parseCSV(await file.text()); e.target.value = "";
+  if (rows.length < 2) return toast("No rows found in that file");
+  const head = rows[0].map(h => h.trim().toLowerCase().replace(/[^a-z]+/g, "_"));
+  const col = (r, ...names) => { for (const n of names){ const i = head.indexOf(n); if (i > -1) return (r[i] || "").trim(); } return ""; };
+  let added = 0, updated = 0;
+  rows.slice(1).forEach(r => {
+    const res = upsertSignup({
+      name: col(r, "name", "full_name"), first_name: col(r, "first_name"), last_name: col(r, "last_name"), phone: col(r, "phone"), email: col(r, "email"), notes: col(r, "notes"),
+      musical_gift: col(r, "musical_gift", "music"), ward: col(r, "ward"), date_of_birth: col(r, "date_of_birth", "dob"),
+      available_dates: col(r, "available_dates"), available_times: col(r, "available_times")
+    });
+    if (res === "added") added++; else if (res === "updated") updated++;
+  });
+  renderAll(); toast(`Imported: ${added} new, ${updated} updated`);
+});
+$("#importJson").addEventListener("change", async e => {
+  const file = e.target.files[0]; if (!file) return; e.target.value = "";
+  try {
+    const s = JSON.parse(await file.text());
+    if (!Array.isArray(s.volunteers) || !Array.isArray(s.assignments)) throw 0;
+    if (!confirm("Replace the current roster with this backup?")) return;
+    state = { volunteers: s.volunteers, assignments: s.assignments, needed: s.needed || {}, syncedIds: s.syncedIds || [], schemaVersion: s.schemaVersion };
+    migrateMusicSlot(state);
+    renderAll(); toast("Backup restored");
+  } catch(err){ toast("That isn't a valid roster backup"); }
+});
+function loadSample(){ if (confirm("Replace the shared roster with sample volunteers? This affects every admin.")){ state = sampleState(); state.syncedIds = []; renderAll(); } }
+function clearAll(){
+  if (!confirm("Delete all volunteers and assignments from the shared roster? This affects every admin. Download a backup first if you need one. Sign-ups from Netlify will sync back in.")) return;
+  state = { volunteers: [], assignments: [], needed: {}, syncedIds: [], schemaVersion: 2 }; renderAll(); syncSignups();
+}
+
+let tt;
+function toast(m){ const t = $("#toast"); t.textContent = m; t.classList.add("show"); clearTimeout(tt); tt = setTimeout(() => t.classList.remove("show"), 2600); }
+
+/* ---------- init ---------- */
+$("#eventName").textContent = CONFIG.eventName;
+$("#eventSub").textContent = CONFIG.eventSub;
+document.title = CONFIG.eventName;
+$("#suDob").max = latestAllowedDob();
+$("#suDobNote").textContent = `Volunteers must be at least ${CONFIG.minAge} by ${CONFIG.ageAsOfLabel}.`;
+$("#suDob").addEventListener("input", e => {
+  const age = ageOn(e.target.value);
+  e.target.setCustomValidity(age !== null && age < CONFIG.minAge ? `Volunteers must be at least ${CONFIG.minAge} years old by ${CONFIG.ageAsOfLabel}.` : "");
+});
+const wardOpts = CONFIG.wards.map(w => `<option>${esc(w)}</option>`).join("");
+$("#suWard").innerHTML = `<option value="">Select your ward…</option>${wardOpts}`;
+$("#vWard").innerHTML = `<option value="">Not a ward member</option>${wardOpts}`;
+$("#vWardFilter").innerHTML = `<option value="__all">All wards</option>${wardOpts}<option value="__none">Not a ward member</option>`;
+checkboxes($("#vDates"), CONFIG.dates, "v-date");
+checkboxes($("#vSlots"), CONFIG.slots, "v-slot", s => s.id, slotFullLabel);
+checkboxes($("#suDates"), CONFIG.dates, "su-date");
+checkboxes($("#suSlots"), CONFIG.slots, "su-slot", s => s.id, slotFullLabel);
+/* ---------- admin login ---------- */
+const SESSION_KEY = "volunteer-roster-admin";
+const hex = buf => [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("");
+const fromHex = h => new Uint8Array(h.match(/../g).map(x => parseInt(x, 16)));
+async function pbkdf2(text, saltHex){
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(text), "PBKDF2", false, ["deriveBits"]);
+  return hex(await crypto.subtle.deriveBits({ name: "PBKDF2", hash: "SHA-256", salt: fromHex(saltHex), iterations: CONFIG.pbkdf2Iterations }, key, 256));
+}
+function currentAdmin(){ try { return sessionStorage.getItem(SESSION_KEY); } catch(e){ return null; } }
+const isAdminPath = () => /\/admin\/?$/.test(location.pathname) || location.hash === "#login";
+const siteRoot = () => location.origin + location.pathname.replace(/admin\/?$/, "").replace(/index\.html$/, "");
+function applyAccess(){
+  const who = currentAdmin(), signupLink = location.hash === "#signup" || location.hash === "#ward-signup";
+  if (location.hash === "#login" && who) history.replaceState(null, "", location.pathname + location.search);
+  const wantsLogin = isAdminPath() && !who && !signupLink, wasOpen = !$("#loginPage").hidden;
+  $("#loginPage").hidden = !wantsLogin;
+  document.body.classList.toggle("login-mode", wantsLogin);
+  if (wantsLogin && !wasOpen){ $("#loginErr").textContent = ""; $("#loginForm").reset(); setTimeout(() => $("#loginEmail").focus(), 0); }
+  setSignupMode(modeFromHash());
+  document.body.classList.toggle("signup-only", !who || signupLink);
+  $("#whoami").textContent = who ? `Signed in as ${who}` : "";
+  if (!who || signupLink) showTab("signup");
+  else if (document.querySelector("nav.tabs button.active")?.dataset.tab === "signup") showTab("dashboard");
+}
+function openLogin(){ location.href = siteRoot() + "admin"; }
+let failedTries = 0;
+$("#loginForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const email = $("#loginEmail").value.trim().toLowerCase(), pw = $("#loginPw").value;
+  const btn = e.target.querySelector("button[type=submit]");
+  btn.disabled = true; $("#loginErr").textContent = "Checking…";
+  if (failedTries >= 3) await new Promise(r => setTimeout(r, 1500 * (failedTries - 2)));
+  // The server is the source of truth (it knows admins added in the app). If it can't be reached,
+  // fall back to the built-in admin list in CONFIG so the roster still opens.
+  const server = await serverLogin(email, pw);
+  let ok = server === "ok";
+  if (server === "unavailable"){
+    const admin = CONFIG.admins.find(a => a.email.toLowerCase() === email);
+    try {
+      // Always run the hash, even for unknown emails, so timing doesn't reveal which emails are admins
+      const h = await pbkdf2(email + ":" + pw, admin ? admin.salt : CONFIG.admins[0].salt);
+      ok = !!admin && h === admin.hash;
+    } catch(err){
+      $("#loginErr").textContent = "Login needs a secure (https) page. It works on the Netlify site.";
+      btn.disabled = false; return;
+    }
+  }
+  btn.disabled = false;
+  if (!ok){ failedTries++; $("#loginErr").textContent = "Incorrect email or password."; $("#loginPw").value = ""; return; }
+  failedTries = 0;
+  const admin = { email };
+  try { sessionStorage.setItem(SESSION_KEY, email); } catch(err){}
+  if (["#signup", "#ward-signup", "#login"].includes(location.hash)) history.replaceState(null, "", location.pathname + location.search);
+  applyAccess(); showTab("dashboard"); toast(`Welcome, ${admin.email}`);
+  syncSignups();
+});
+function logout(){
+  try { sessionStorage.removeItem(SESSION_KEY); sessionStorage.removeItem(SYNC_KEY); sessionStorage.removeItem(SYNC_ERR_KEY); } catch(e){}
+  setSyncStatus(""); setRosterStatus("");
+  slotDlg.open && slotDlg.close();
+  applyAccess(); toast("Logged out");
+}
+window.addEventListener("hashchange", applyAccess);
+
+/* ---------- automatic sign-up sync (Netlify Function at /api/signups) ---------- */
+const SYNC_KEY = "volunteer-roster-sync-token";
+const SYNC_ERR_KEY = "volunteer-roster-sync-error";
+const SYNC_EVERY_MS = 60 * 1000;
+let syncing = false, lastSync = null;
+const syncToken = () => { try { return sessionStorage.getItem(SYNC_KEY); } catch(e){ return null; } };
+function setSyncStatus(text, isError, detail){
+  const el = $("#syncStatus"); el.textContent = text; el.classList.toggle("err", !!isError); el.title = detail || "";
+}
+const SYNC_PROBLEMS = {
+  404: ["Auto-sync off: sync function not deployed", "The site was deployed without netlify/functions/signups.mjs. Deploy the whole folder with GitHub or the Netlify CLI (drag-and-drop skips functions)."],
+  503: ["Auto-sync off: access token not set", "Add NETLIFY_API_TOKEN under Site configuration > Environment variables, then trigger a new deploy."],
+  0:   ["Auto-sync off: couldn't reach the server", "Check your connection, then log out and back in."]
+};
+function syncProblem(){ try { return JSON.parse(sessionStorage.getItem(SYNC_ERR_KEY)); } catch(e){ return null; } }
+/* Returns "ok" (logged in on the server), "denied" (wrong email/password) or "unavailable" (server can't check). */
+async function serverLogin(email, password){
+  try {
+    const r = await fetch("/api/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password }) });
+    const j = await r.json().catch(() => ({}));
+    if (r.ok && j.token){ sessionStorage.setItem(SYNC_KEY, j.token); sessionStorage.removeItem(SYNC_ERR_KEY); return "ok"; }
+    if (r.status === 401) return "denied";
+    const p = SYNC_PROBLEMS[r.status] || [`Auto-sync off: server error ${r.status}`, j.error || "Check the function log in Netlify (Logs > Functions)."];
+    sessionStorage.setItem(SYNC_ERR_KEY, JSON.stringify(p));
+  } catch(err){ try { sessionStorage.setItem(SYNC_ERR_KEY, JSON.stringify(SYNC_PROBLEMS[0])); } catch(e){} }
+  return "unavailable";
+}
+async function syncSignups(manual){
+  if (!currentAdmin() || syncing) return;
+  const token = syncToken();
+  if (!token){
+    const [msg, detail] = syncProblem() || ["Auto-sync off: log out and back in", "Log out and back in to start syncing."];
+    setSyncStatus(msg, true, detail);
+    if (manual) toast(detail);
+    return;
+  }
+  syncing = true; setSyncStatus("Syncing sign-ups…");
+  try {
+    await pullRoster();
+    const r = await fetch("/api/signups", { headers: { Authorization: "Bearer " + token }, cache: "no-store" });
+    const j = await r.json().catch(() => ({}));
+    if (r.status === 401){ sessionStorage.removeItem(SYNC_KEY); setSyncStatus("Session expired: log out and back in to resume syncing", true); return; }
+    if (!r.ok) throw new Error(j.error || `Sync failed (${r.status})`);
+    const seen = new Set(state.syncedIds);
+    const fresh = (j.submissions || []).filter(s => !seen.has(s.id)).sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)));
+    let added = 0, updated = 0;
+    for (const s of fresh){
+      const res = upsertSignup(s.data || {});
+      if (res === "added") added++; else if (res === "updated") updated++;
+      state.syncedIds.push(s.id);
+    }
+    if (fresh.length) renderAll();
+    lastSync = new Date();
+    setSyncStatus(`Sign-ups synced ${lastSync.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}${j.note ? " · " + j.note : ""}`);
+    if (added || updated) toast(`New sign-ups: ${added} added${updated ? `, ${updated} updated` : ""}`);
+    else if (manual) toast("No new sign-ups");
+  } catch(err){
+    setSyncStatus(err.message || "Sync failed", true);
+    if (manual) toast(err.message || "Sync failed");
+  } finally { syncing = false; }
+}
+/* ---------- shared roster (Netlify Function at /api/roster) ----------
+   Every change is saved to the server, and other admins' changes are pulled in every minute.
+   If two admins save at nearly the same time, their changes are merged:
+   added/removed assignments and edited volunteers from both are kept. */
+const SHARED_KEY = CONFIG.storageKey + "-shared";
+const ROSTER_FIELDS = ["volunteers", "assignments", "needed", "syncedIds", "schemaVersion"];
+const snapshot = st => JSON.parse(JSON.stringify(Object.fromEntries(ROSTER_FIELDS.map(k => [k, st?.[k]]))));
+const sameRoster = (a, b) => JSON.stringify(snapshot(a)) === JSON.stringify(snapshot(b));
+let shared = (() => { try { return JSON.parse(localStorage.getItem(SHARED_KEY)) || {}; } catch(e){ return {}; } })();
+const saveShared = () => { try { localStorage.setItem(SHARED_KEY, JSON.stringify(shared)); } catch(e){} };
+let rosterBusy = false, rosterAgain = false, pushTimer = null, rosterOnline = false;
+
+function setRosterStatus(text, isError, detail){
+  const el = $("#rosterStatus"); if (!el) return;
+  el.textContent = text; el.classList.toggle("err", !!isError); el.title = detail || "";
+}
+const timeNow = () => new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+
+function mergeRoster(base, local, remote){
+  const empty = { volunteers: [], assignments: [], needed: {}, syncedIds: [] };
+  base = snapshot(base || empty); local = snapshot(local); remote = snapshot(remote || empty);
+  const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  const byId = arr => new Map((arr || []).map(v => [v.id, v]));
+  const B = byId(base.volunteers), L = byId(local.volunteers), R = byId(remote.volunteers);
+  const vols = new Map(R);
+  for (const [id, v] of L) if (!B.has(id) || !same(B.get(id), v)) vols.set(id, v);          // added or edited here
+  for (const [id, v] of B) if (!L.has(id) && same(v, R.get(id))) vols.delete(id);           // deleted here, untouched there
+  const key = a => `${a.vid}|${a.date}|${a.slot}`;
+  const bA = new Set((base.assignments || []).map(key)), lA = new Map((local.assignments || []).map(a => [key(a), a]));
+  const asg = new Map((remote.assignments || []).map(a => [key(a), a]));
+  for (const [k, a] of lA) if (!bA.has(k)) asg.set(k, a);                                    // assigned here
+  for (const k of bA) if (!lA.has(k)) asg.delete(k);                                         // unassigned here
+  const needed = { ...(remote.needed || {}) };
+  for (const k of new Set([...Object.keys(base.needed || {}), ...Object.keys(local.needed || {})])){
+    if ((base.needed || {})[k] !== (local.needed || {})[k]){
+      if (k in (local.needed || {})) needed[k] = local.needed[k]; else delete needed[k];
+    }
+  }
+  return {
+    volunteers: [...vols.values()],
+    assignments: [...asg.values()].filter(a => vols.has(a.vid)),
+    needed,
+    syncedIds: [...new Set([...(remote.syncedIds || []), ...(local.syncedIds || [])])],
+    schemaVersion: 2
+  };
+}
+function adoptRoster(data){
+  const keepEditing = editingId;
+  state = { ...snapshot(data), syncedIds: data.syncedIds || [], needed: data.needed || {} };
+  migrateMusicSlot(state);
+  if (keepEditing && !vById(keepEditing)){ editingId = null; fillForm(null); }
+}
+async function rosterFetch(method, body){
+  const token = syncToken();
+  if (!token) throw Object.assign(new Error("not-connected"), { status: 0 });
+  const r = await fetch("/api/roster", { method, cache: "no-store",
+    headers: { Authorization: "Bearer " + token, ...(body ? { "Content-Type": "application/json" } : {}) },
+    body: body ? JSON.stringify(body) : undefined });
+  const j = await r.json().catch(() => ({}));
+  if (r.status === 401){ sessionStorage.removeItem(SYNC_KEY); throw Object.assign(new Error("Session expired: log out and back in"), { status: 401 }); }
+  return { r, j };
+}
+function rosterOffline(err){
+  rosterOnline = false;
+  if (err.status === 0 || err.status === 404) setRosterStatus("Roster saved in this browser only", true, "The server isn't connected, so changes are saved only in this browser. They'll be shared once the connection works and you log in again.");
+  else setRosterStatus(err.message || "Couldn't save the roster", true, "Changes are kept in this browser and will be saved when the connection returns.");
+}
+/* Get the shared roster and fold in anything this browser hasn't saved yet. */
+async function pullRoster(){
+  if (!currentAdmin() || rosterBusy) return;
+  rosterBusy = true;
+  try {
+    const { r, j } = await rosterFetch("GET");
+    if (!r.ok) throw Object.assign(new Error(j.error || `Server error ${r.status}`), { status: r.status });
+    rosterOnline = true;
+    if (j.data == null){
+      // Nobody has saved a shared roster yet: this browser's roster becomes the first one (sample data excluded)
+      const onlySample = state.volunteers.length && state.volunteers.every(v => /@example\.com$/i.test(v.email || ""));
+      if (onlySample) state = { volunteers: [], assignments: [], needed: {}, syncedIds: [], schemaVersion: 2 };
+      shared = { base: null, etag: null }; saveShared();
+    } else if (j.etag !== shared.etag){
+      const dirty = shared.base && !sameRoster(state, shared.base);
+      if (!shared.base){
+        // First time this browser connects: offer to add its own data to the shared roster
+        const onlySample = state.volunteers.every(v => /@example\.com$/i.test(v.email || ""));
+        const extra = state.assignments.filter(a => !(j.data.assignments || []).some(b => b.vid === a.vid && b.date === a.date && b.slot === a.slot)).length;
+        const wantsMerge = !onlySample && (state.volunteers.length || state.assignments.length) && !sameRoster(state, j.data) &&
+          confirm(`This browser has its own copy of the roster (${state.volunteers.length} volunteers, ${state.assignments.length} assignments, ${extra} not in the shared roster).\n\nOK: add this browser's volunteers and assignments to the shared roster.\nCancel: use the shared roster as it is.`);
+        state = wantsMerge ? mergeRoster(null, state, j.data) : (adoptRoster(j.data), state);
+      } else if (dirty) state = mergeRoster(shared.base, state, j.data);
+      else adoptRoster(j.data);
+      shared = { base: snapshot(j.data), etag: j.etag }; saveShared();
+      renderAll();
+    }
+    if (!shared.base || !sameRoster(state, shared.base)) rosterAgain = true;
+    else setRosterStatus(`Roster saved ${timeNow()}`);
+  } catch(err){ rosterOffline(err); }
+  finally { rosterBusy = false; if (rosterAgain){ rosterAgain = false; pushRoster(); } }
+}
+function scheduleRosterPush(){
+  if (!currentAdmin()) return;
+  clearTimeout(pushTimer);
+  pushTimer = setTimeout(pushRoster, 800);
+}
+/* Save this browser's changes; if someone else saved first, merge and try again. */
+async function pushRoster(){
+  if (!currentAdmin()) return;
+  if (rosterBusy){ rosterAgain = true; return; }
+  if (shared.base && sameRoster(state, shared.base)) return;
+  if (!syncToken()){ rosterOffline({ status: 0 }); return; }
+  rosterBusy = true; setRosterStatus("Saving…");
+  try {
+    for (let attempt = 0; attempt < 5; attempt++){
+      const sent = snapshot(state);
+      const { r, j } = await rosterFetch("PUT", { data: sent, etag: shared.etag || null });
+      if (r.ok){
+        shared = { base: sent, etag: j.etag }; saveShared(); rosterOnline = true;
+        setRosterStatus(`Roster saved ${timeNow()}`);
+        if (!sameRoster(state, sent)) rosterAgain = true;
+        return;
+      }
+      if (r.status === 409 && j.data){
+        state = mergeRoster(shared.base, state, j.data);
+        shared = { base: snapshot(j.data), etag: j.etag }; saveShared();
+        try { localStorage.setItem(CONFIG.storageKey, JSON.stringify(state)); } catch(e){}
+        renderView();
+        continue;
+      }
+      throw Object.assign(new Error(j.error || `Server error ${r.status}`), { status: r.status });
+    }
+    throw new Error("Couldn't save: too many changes at once. Try again.");
+  } catch(err){ rosterOffline(err); }
+  finally { rosterBusy = false; if (rosterAgain){ rosterAgain = false; scheduleRosterPush(); } }
+}
+window.addEventListener("beforeunload", e => {
+  if (currentAdmin() && rosterOnline && shared.base && !sameRoster(state, shared.base)){ pushRoster(); e.preventDefault(); e.returnValue = ""; }
+});
+
+setInterval(() => { if (document.visibilityState === "visible") syncSignups(); }, SYNC_EVERY_MS);
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && (!lastSync || Date.now() - lastSync > SYNC_EVERY_MS)) syncSignups();
+});
+
+/* ---------- admin accounts (Netlify Function at /api/admins, /api/password) ---------- */
+async function adminApi(method, path, body){
+  const token = syncToken();
+  if (!token) throw Object.assign(new Error("no-token"), { status: 0 });
+  const r = await fetch(path, { method, headers: { Authorization: "Bearer " + token, ...(body ? { "Content-Type": "application/json" } : {}) }, body: body ? JSON.stringify(body) : undefined, cache: "no-store" });
+  const j = await r.json().catch(() => ({}));
+  if (r.status === 401 && path !== "/api/password"){ sessionStorage.removeItem(SYNC_KEY); throw Object.assign(new Error("Your session expired. Log out and back in."), { status: 401 }); }
+  if (!r.ok) throw Object.assign(new Error(j.error || `Server error ${r.status}`), { status: r.status });
+  return j;
+}
+function setMsg(el, text, kind){ el.textContent = text; el.className = "login-msg" + (kind ? " " + kind : ""); }
+const fmtDate = iso => iso ? new Date(iso).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" }) : "";
+async function loadAdmins(manual){
+  $("#pwWho").textContent = currentAdmin() || "";
+  $("#adminLinkText").textContent = siteRoot() + "admin";
+  const warn = $("#adminsUnavailable");
+  try {
+    const { admins, me } = await adminApi("GET", "/api/admins");
+    warn.hidden = true;
+    $("#adminTable").innerHTML = `<thead><tr><th>Email</th><th>Account</th><th class="noprint"></th></tr></thead><tbody>` +
+      admins.map(a => `<tr>
+        <td><b>${esc(a.email)}</b>${a.email === me ? ` <span class="pill s-full">You</span>` : ""}</td>
+        <td class="muted">${a.builtIn ? "Built-in" : `Added${a.addedBy ? " by " + esc(a.addedBy) : ""}${a.addedAt ? " on " + esc(fmtDate(a.addedAt)) : ""}`}</td>
+        <td class="noprint" style="text-align:right">${!a.builtIn && a.email !== me ? `<button class="sm danger" data-rm-admin="${esc(a.email)}">Remove</button>` : ""}</td>
+      </tr>`).join("") + "</tbody>";
+    if (manual) toast("Admin list refreshed");
+  } catch(err){
+    const [msg, detail] = err.status === 0 ? (syncProblem() || ["Server not connected", "Log out and back in."]) : [err.message, ""];
+    warn.innerHTML = `<b>Admin accounts can't be managed right now.</b> ${esc(msg.replace(/^Auto-sync off: /, ""))}. ${esc(detail)}`;
+    warn.hidden = false;
+    $("#adminTable").innerHTML = `<tr><td class="muted">Unavailable until the server connection is working.</td></tr>`;
+  }
+}
+$("#adminTable").addEventListener("click", async e => {
+  const email = e.target.dataset.rmAdmin; if (!email) return;
+  if (!confirm(`Remove ${email} as an admin? They'll be signed out and won't be able to log in.`)) return;
+  try { await adminApi("DELETE", "/api/admins?email=" + encodeURIComponent(email)); toast(`${email} removed`); loadAdmins(); }
+  catch(err){ toast(err.message); }
+});
+$("#addAdminForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const msg = $("#addAdminMsg"), email = $("#newAdminEmail").value.trim().toLowerCase(), pw = $("#newAdminPw").value;
+  if (pw !== $("#newAdminPw2").value) return setMsg(msg, "The passwords don't match.", "err");
+  const btn = e.target.querySelector("button"); btn.disabled = true; setMsg(msg, "Adding…");
+  try {
+    await adminApi("POST", "/api/admins", { email, password: pw });
+    e.target.reset(); setMsg(msg, `${email} can now log in.`, "ok"); loadAdmins();
+  } catch(err){ setMsg(msg, err.status === 0 ? "The server isn't connected, so admins can't be added right now." : err.message, "err"); }
+  finally { btn.disabled = false; }
+});
+$("#pwForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const msg = $("#pwMsg"), next = $("#nextPw").value;
+  if (next !== $("#nextPw2").value) return setMsg(msg, "The new passwords don't match.", "err");
+  const btn = e.target.querySelector("button"); btn.disabled = true; setMsg(msg, "Saving…");
+  try {
+    await adminApi("POST", "/api/password", { currentPassword: $("#curPw").value, newPassword: next });
+    e.target.reset(); setMsg(msg, "Password changed. Use it next time you log in.", "ok");
+  } catch(err){ setMsg(msg, err.status === 0 ? "The server isn't connected, so passwords can't be changed right now." : err.message, "err"); }
+  finally { btn.disabled = false; }
+});
+
+applyAccess();
+renderAll();
+syncSignups();
+</script>
+</body>
+</html>
